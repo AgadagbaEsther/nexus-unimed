@@ -1,0 +1,95 @@
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+        :root { --neon: #00ffcc; --bg: #05080a; }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: var(--bg); font-family: 'Inter', sans-serif; color: white; overflow: hidden; }
+        
+        #three-canvas { display: block; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; outline: none; }
+        
+        /* UI Wrapper */
+        .interface { position: fixed; z-index: 10; width: 100vw; height: 100vh; pointer-events: none; display: flex; flex-direction: column; padding: 30px; box-sizing: border-box; }
+        
+        .top-nav { display: flex; justify-content: space-between; align-items: center; pointer-events: auto; }
+        .logo { font-weight: 600; letter-spacing: 2px; color: var(--neon); text-transform: uppercase; font-size: 14px; }
+        .top-nav, .side-panel, .feedback-prompt, .search-box, input { 
+    pointer-events: auto !important;
+        }
+        
+        /* Search styling with scrollable list */
+        .search-box { 
+            background: rgba(255, 255, 255, 0.05); 
+            backdrop-filter: blur(15px); 
+            border: 1px solid rgba(0, 255, 204, 0.3); 
+            padding: 10px 20px; 
+            border-radius: 50px; 
+            width: 300px; 
+            pointer-events: auto; 
+        }
+        input { background: none; border: none; color: white; width: 100%; outline: none; font-size: 14px; }
+
+        /* Side Panel */
+        .side-panel {
+            position: absolute; right: 30px; top: 100px; width: 300px;
+            background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px);
+            border-left: 2px solid var(--neon); padding: 25px; border-radius: 15px;
+            pointer-events: auto; transform: translateX(450px); 
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .side-panel.active { transform: translateX(0); }
+
+        /* Toast & Notices */
+        #marker-toast {
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+            background: var(--neon); color: black; padding: 12px 25px;
+            border-radius: 50px; font-weight: bold; font-size: 12px;
+            display: none; z-index: 100;
+        }
+
+        .campus-notice {
+            position: absolute; bottom: 60px; left: 30px;
+            font-size: 11px; opacity: 0.6; line-height: 1.4;
+            max-width: 400px; border-left: 1px solid var(--neon); padding-left: 10px;
+        }
+
+        .status-tag { position: absolute; bottom: 30px; left: 30px; font-family: monospace; font-size: 10px; color: var(--neon); letter-spacing: 1px; }
+        
+        /* Form Prompt */
+        .feedback-prompt {
+            position: absolute; bottom: 30px; right: 30px;
+            background: rgba(0, 255, 204, 0.1); border: 1px solid var(--neon);
+            padding: 15px; border-radius: 10px; pointer-events: auto;
+            display: none; width: 220px;
+        }
+
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 768px) {
+            .interface { padding: 15px; }
+            
+            .search-box { 
+                width: 60%; /* Shrinks search box on phones */
+                padding: 8px 15px; 
+            }
+
+            .side-panel {
+                width: 85%; /* Makes panel wider on mobile so text is readable */
+                right: 7.5%; /* Centers it more */
+                top: 80px;
+                padding: 15px;
+            }
+
+            .logo { font-size: 11px; letter-spacing: 1px; }
+
+            .campus-notice {
+                bottom: 100px; /* Moves notice up so it doesn't hit the status tag */
+                font-size: 9px;
+                max-width: 80%;
+            }
+
+            #marker-toast {
+                width: 80%;
+                font-size: 10px;
+                bottom: 160px;
+            }
+        }
