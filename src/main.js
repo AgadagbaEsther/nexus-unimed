@@ -29,7 +29,7 @@ const marker = new THREE.Mesh(
 marker.visible = false;
 scene.add(marker);
 
-let campus;
+let campus, searchCount = 0;
 const originalPositions = new Map(); 
 let currentlyLifted = [];
 let currentlySliced = [];
@@ -149,6 +149,13 @@ function processSelection(data, point) {
 
         // 4. EXECUTE RIGGED BUILDING LIFTS/SLICES
         tl.add(() => executeBuildingAnimations(data, point), "-=1.5");
+
+        // 5. ENGAGE FEEDBACK FRAMEWORK
+        searchCount++;
+        const feedbackPrompt = document.getElementById('feedback-prompt');
+        if (searchCount && feedbackPrompt) {
+            feedbackPrompt.style.display = 'block';
+        }
     });
 }
 
