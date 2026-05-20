@@ -5,8 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>nexus</title>
-    <script type="module" crossorigin src="./assets/index-DNnp5p5l.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BWpxVu6C.css">
+    <script type="module" crossorigin src="/assets/index-dqyISVU3.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-zh8RfLW8.css">
   </head>
   <body>
     
@@ -15,34 +15,29 @@
     <div class="interface">
         <nav class="top-nav">
             <div class="logo">Nexus // UNIMED</div>
-            <div class="search-box">
-                <input type="text" id="nexus-search" list="building-options" autocomplete="off" placeholder="Search Office...">
-                <datalist id="building-options"></datalist>
+            <div class="search-box search-container">
+                <input type="text" id="nexus-search" autocomplete="off" placeholder="Search Office...">
+                <span id="dropdown-arrow" class="dropdown-arrow">▼</span>
+                <ul id="building-options" class="custom-dropdown"></ul>
             </div>
         </nav>
 
         <div id="side-panel" class="side-panel">
             <h2 id="view-name" style="color: var(--neon); margin: 0; font-size: 1.2rem;">System Idle</h2>
             <p id="view-desc" style="opacity: 0.7; font-size: 13px; line-height: 1.6; margin-top: 15px;">Awaiting telemetry input...</p>
-            <div id="action-status" style="margin-top: 15px; font-size: 10px; color: var(--neon); border-top: 1px solid rgba(0,255,204,0.2); padding-top: 10px;">SCANNER READY</div>
-            <div id="form-link-area" style="margin-top:10px;"></div>
+            <div id="action-status" style="margin-top: 15px; font-size: 8px; color: var(--neon); border-top: 1px solid rgba(0,255,204,0.2); padding-top: 10px;"></div>
         </div>
 
-        <div id="marker-toast">🔷 PLEASE SCROLL UNTIL YOU SEE THE DIAMOND MARKER FOR OFFICES ONLY, BUILINGS DO NOT HAVE THIS MARKER.</div>
-
-        <div class="campus-notice">
-            This project is designed for first-year students and is solely based off Odosida Campus.<br>
-            Visitors are welcome to search through.
-        </div>
+        <div id="marker-toast" font-weight="bold">Scroll till you see diamond marker, except the buildings. 100lv/First-years were prioritized, visitors are welcomed.</div>
 
         <div id="feedback-prompt" class="feedback-prompt">
-            <p style="font-size: 12px; margin: 0 0 10px 0;">Help us improve Nexus, please fill out this form!</p>
+            <p style="font-size: 11px; margin: 0 0 10px 0;">Help us improve Nexus!</p>
             <a id="form-btn" href="#" target="_blank" style="color: var(--neon); font-size: 11px; text-decoration: none; font-weight: bold;">FILL GOOGLE FORM →</a>
         </div>
 
         <div class="status-tag" id="load-status">INITIALIZING NEXUS...</div>
     </div>
-    <div style="position: fixed; bottom: 15px; left: 15px; font-size: 11px; color: #00ffcc; z-index: 9999; pointer-events: none; text-shadow: 1px 1px 2px black; font-family: monospace;">
+    <div style="position: fixed; bottom: 15px; left: 15px; font-size: 10px; color: #00ffcc; z-index: 9999; pointer-events: none; text-shadow: 1px 1px 2px black; font-family: monospace;">
         &copy; 2026 NEXUS // Agadagba Esther // agadagbaesther@gmail.com
     </div>
   </body>
