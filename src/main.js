@@ -76,21 +76,33 @@ function closeDropdown() {
     dList.style.display = 'none';
     if (arrowBtn) arrowBtn.classList.remove('open');
 }
-
-// --- ASSET LOADER LAYER ---
+// --- ASSET LOADER LAYER (FIXED & TUNED) ---
 const loader = new GLTFLoader();
 loader.load('./MYSchool_project9.glb', (gltf) => {
     campus = gltf.scene;
     scene.add(campus);
-    // 🛠️ HIDE THE LOADING SCREEN INSTANTLY WHEN THE MODEL ARRIVES:
+    
+    // ✅ FIXED: Safely record original node coordinates the second the model arrives successfully!
+    campus.traverse(child => {
+        if (child.name) {
+            originalPositions.set(child.name, child.position.clone());
+        }
+    });
+
+    // HIDE THE LOADING SCREEN INSTANTLY WHEN THE MODEL ARRIVES
     const loaderElement = document.getElementById('loading-screen');
     if (loaderElement) {
         loaderElement.style.display = 'none';
     }
+    
+    const loadStatus = document.getElementById('load-status');
+    if (loadStatus) loadStatus.innerText = "SYSTEM ONLINE";
 }, 
-// Optional: track progress
+// Track progress
 function(xhr) {
-    console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+    if (xhr.total > 0) {
+        console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+    }
 },
 // Catch loading errors
 function(error) {
