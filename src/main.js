@@ -3,6 +3,7 @@ import './style.css'; // This tells Vite to load your CSS
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import gsap from 'gsap';
 import { buildingMap } from './location.js';
 
@@ -20,6 +21,12 @@ renderer.localClippingEnabled = true;
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 scene.add(new THREE.AmbientLight(0xffffff, 2.5));
+
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+
+const loader = new GLTFLoader();
+loader.setDRACOLoader(dracoLoader);
 
 const clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 2000);
 const marker = new THREE.Mesh(
@@ -74,7 +81,6 @@ function closeDropdown() {
 }
 
 // --- ASSET LOADER LAYER (WITH POSITION & ROTATION SHIFTS) ---
-const loader = new GLTFLoader();
 loader.load('./MYSchool_project9.glb', (gltf) => {
     campus = gltf.scene;
     
