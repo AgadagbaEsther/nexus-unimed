@@ -5,7 +5,7 @@ export const buildingMap = {
         body: "cbt_center_upstairs",  // This is your Empty Axis or Door name
         slicerTarget: "annex",     // The solid building mesh to slice
         useSlicer: true,   
-        displayName: "Ict/cbt Software unit",
+        displayName: "Ict/cbt center unit",
         description: "This unit's office is the second office to your left, you will see lots of desktop arranged before you, look to your left and go to the second office. This unit Configures and manages the secure infrastructure for Computer-Based Testing (CBT). Oversees examination software setup, question deployment, and real-time result compilation for university and screening exams."
     },
     // e-lib  and its various doors
@@ -146,7 +146,7 @@ export const buildingMap = {
         description: "For slt students to have classes."
     },
      "fd-sci": {
-        body: "food-sci-classroom",  // This is your Empty Axis or Door name
+        body: "food-sci-lab",  // This is your Empty Axis or Door name
         displayName: "Food Science lab",
         description: "For food science students to have classes and praticals."
     },
@@ -156,7 +156,7 @@ export const buildingMap = {
         description: ""
     },
    "hnd": {
-        body: "hnd lab2",  // This is your Empty Axis or Door name
+        body: "hnd_lab",  // This is your Empty Axis or Door name
         displayName: "HND lab",
         description: "For hnd students to have classes and frequent praticals."
     },
