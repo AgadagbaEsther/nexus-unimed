@@ -233,18 +233,6 @@ input {
     letter-spacing: 1px; 
 }
 
-.feedback-prompt {
-    position: absolute; 
-    bottom: 80px; 
-    right: 30px;
-    background: rgba(0, 255, 204, 0.1); 
-    border: 1px solid var(--neon);
-    padding: 15px; 
-    border-radius: 10px; 
-    pointer-events: auto;
-    display: none; 
-    width: 220px;
-}
 
 /* ==========================================================================
    5. OPTIMIZED ENGINE LOADING GRAPHICS
@@ -434,4 +422,12 @@ input {
     #load-status {
         display: none !important;
     }
+}
+
+
+/* Smoothly fades in the NEXUS dashboard once the 3D canvas is ready */
+#nexus-interface {
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    pointer-events: none;
 }

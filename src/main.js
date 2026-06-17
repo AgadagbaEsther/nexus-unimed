@@ -7,6 +7,37 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import gsap from 'gsap';
 import { buildingMap } from './location.js';
 
+// --- 1. PROFESSIONAL THROTTLING ENGINE CONTROLS ---
+let isModelReady = false; 
+
+function handleLoadComplete() {
+    const progressText = document.getElementById('nexus-loading-text');
+    if (progressText) progressText.innerText = `Assembling NEXUS Environment... 100%`;
+
+    const loaderElement = document.getElementById('loading-screen');
+    const interfaceElement = document.getElementById('nexus-interface');
+
+    // Smoothly fade away the blocker overlay
+    if (loaderElement) {
+        loaderElement.style.transition = 'opacity 0.5s ease-in-out';
+        loaderElement.style.opacity = '0';
+        setTimeout(() => loaderElement.remove(), 500);
+    }
+
+    // Activate and reveal the user interface safely without thread clashing
+    if (interfaceElement) {
+        interfaceElement.style.opacity = '1';
+    }
+
+    const loadStatus = document.getElementById('load-status');
+    if (loadStatus) loadStatus.innerText = "SYSTEM ONLINE";
+
+    // Set engine state to active and force awake interaction variables
+    isModelReady = true;
+    controls.enabled = true;
+    controls.update();
+}
+
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x05080a);
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
@@ -18,6 +49,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.localClippingEnabled = true;
 
+// 🛠️ FIX: Do not set controls.enabled to false here. Keep it active so the DOM hooks match up.
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 scene.add(new THREE.AmbientLight(0xffffff, 2.5));
@@ -41,17 +73,11 @@ const originalPositions = new Map();
 let currentlyLifted = [];
 let currentlySliced = [];
 
-// --- GOOGLE FORM CONFIG ---
-const GOOGLE_FORM_URL = "https://forms.gle/6hZ6KjCoergzyojE8";
-const formBtn = document.getElementById('form-btn');
-if (formBtn) formBtn.href = GOOGLE_FORM_URL;
-
 // --- CUSTOM DROPDOWN ENGINE SET-UP ---
 const dList = document.getElementById('building-options');
 const searchInput = document.getElementById('nexus-search');
 const arrowBtn = document.getElementById('dropdown-arrow');
 
-// Populate custom dropdown list items using your exact source database structure
 if (dList) {
     Object.values(buildingMap).forEach(data => {
         let li = document.createElement('li');
@@ -59,7 +85,7 @@ if (dList) {
         
         li.addEventListener('click', () => {
             if (searchInput) searchInput.value = data.displayName;
-            performSearch(data.displayName); // Triggers your original search perfectly!
+            performSearch(data.displayName); 
             closeDropdown(); 
         });
         
@@ -80,38 +106,31 @@ function closeDropdown() {
     if (arrowBtn) arrowBtn.classList.remove('open');
 }
 
-// --- ASSET LOADER LAYER (WITH POSITION & ROTATION SHIFTS) ---
+// --- STREAMING PIPELINE ENTRY ---
 loader.load('./MYSchool_project9.glb', (gltf) => {
     campus = gltf.scene;
     
-    // 🛠️ SHIFT MODEL LEFT & FORWARD: Gives room for side content interfaces
     campus.position.x = -60; 
     campus.position.z = -20; 
-    
-    // 🛠️ ISOMETRIC SPAWN ROTATION: Sets a professional architectural starting angle
     campus.rotation.y = Math.PI / 4; 
 
     scene.add(campus);
     
-    // ✅ Safely record original node coordinates relative to offsets on arrival success
     campus.traverse(child => {
         if (child.name) {
             originalPositions.set(child.name, child.position.clone());
         }
     });
 
-    // HIDE THE LOADING SCREEN INSTANTLY WHEN THE MODEL ARRIVES
-    const loaderElement = document.getElementById('loading-screen');
-    if (loaderElement) {
-        loaderElement.style.display = 'none';
-    }
-    
-    const loadStatus = document.getElementById('load-status');
-    if (loadStatus) loadStatus.innerText = "SYSTEM ONLINE";
+    // Asset parsing completed successfully, fire interface sequence safely
+    handleLoadComplete();
 }, 
 function(xhr) {
+    // 🛠️ FIX: Calculate real native loading percentages cleanly without guessing or clamping at 95%
     if (xhr.total > 0) {
-        console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        const percent = Math.round((xhr.loaded / xhr.total) * 100);
+        const progressText = document.getElementById('nexus-loading-text');
+        if (progressText) progressText.innerText = `Assembling NEXUS Environment... ${percent}%`;
     }
 },
 function(error) {
@@ -125,15 +144,22 @@ function processSelection(data, point) {
     const tooltip = document.getElementById('guide-tooltip');
     const toast = document.getElementById('marker-toast');
 
-    // Smoothly pull back previous states out-of-the-way during active camera runs
     if (panel) panel.classList.remove('active');
     if (toggleBtn) toggleBtn.classList.remove('open');
     if (tooltip) tooltip.classList.remove('show');
 
     resetSurgically(() => {
-        const tl = gsap.timeline();
+        // 🔒 FIX: Kill running camera tweens and completely release controls when timeline completes
+        const tl = gsap.timeline({
+            onComplete: () => {
+                controls.enabled = true;
+                controls.update();
+            }
+        });
 
-        // CAMERA FLIGHT: Phase 1 (Reset view upward)
+        // 🔒 Temporarily freeze touch interactions during camera flight to prevent layout breaks
+        controls.enabled = false;
+
         tl.to(camera.position, { 
             x: birdsEye.x, 
             y: birdsEye.y, 
@@ -142,7 +168,6 @@ function processSelection(data, point) {
             ease: "power2.inOut" 
         });
 
-        // CAMERA FLIGHT: Phase 2 (Swoop down into target coordinates)
         tl.to(camera.position, {
             x: point.x + 45, 
             y: point.y + 40, 
@@ -161,34 +186,23 @@ function processSelection(data, point) {
                 marker.position.set(point.x, point.y + 0.5, point.z); 
                 marker.visible = true;
                 
-              // 🔔 UPDATED TOAST LOGIC: Only show if searchCount is less than 3
-                // (Since searchCount increments on landing, it will show on clicks 1, 2, and 3, then stop!)
                 if (searchCount < 3 && toast) {
                     toast.style.display = 'block';
                     setTimeout(() => { toast.style.display = 'none'; }, 3000);
                 } else if (toast) {
-                    // Safety guard: ensure it stays hidden on later clicks
                     toast.style.display = 'none';
                 }
             },
             onComplete: () => {
-                searchCount++; // Log active tracking instances
+                searchCount++; 
 
-                // 🎯 STEP 2: SEQUENCED DRAWER TOOLTIP PROMPT
-                // Fires only on first two lookup sequences, dropping 3.2 seconds after flight completion
                 if (searchCount <= 2 && tooltip) {
                     setTimeout(() => {
-                        // Structural check ensures user hasn't clicked menu open in the meantime
                         if (toggleBtn && !toggleBtn.classList.contains('open')) {
                             tooltip.classList.add('show');
-                            // Let the pointing arrow box rest for 5.5 seconds, then dismiss
                             setTimeout(() => tooltip.classList.remove('show'), 5500);
                         }
                     }, 2200); 
-                }
-                const feedbackPrompt = document.getElementById('feedback-prompt');
-                if (searchCount && feedbackPrompt) {
-                     feedbackPrompt.style.display = 'block';
                 }
             }
         });
@@ -198,11 +212,11 @@ function processSelection(data, point) {
             y: point.y, 
             z: point.z,
             duration: 2.5, 
+            ease: "power2.inOut", // Smooth interpolation easing parameter
             onUpdate: () => controls.update() 
         }, "-=2.5"); 
 
         tl.add(() => executeBuildingAnimations(data, point), "-=1.5");
-
     });
 }
 
@@ -279,8 +293,6 @@ function performSearch(query) {
 }
 
 // --- INTERACTIVE EVENT CONTROL LAYERS ---
-
-// Interactive Menu Toggle Button Listener (Hamburger Engine)
 const toggleBtnNode = document.getElementById('panel-toggle');
 const sidePanelNode = document.getElementById('side-panel');
 const tooltipNode = document.getElementById('guide-tooltip');
@@ -288,7 +300,7 @@ const tooltipNode = document.getElementById('guide-tooltip');
 if (toggleBtnNode && sidePanelNode) {
     toggleBtnNode.addEventListener('click', (e) => {
         e.stopPropagation(); 
-        if (tooltipNode) tooltipNode.classList.remove('show'); // Dismiss hint on click
+        if (tooltipNode) tooltipNode.classList.remove('show'); 
 
         const isOpen = toggleBtnNode.classList.toggle('open');
         if (isOpen) {
@@ -391,6 +403,7 @@ window.addEventListener('mouseup', (e) => {
     }
 });
 
+// --- RENDER EXECUTION ENVIRONMENT ---
 function animate() {
     requestAnimationFrame(animate);
     if (marker.visible) {
@@ -400,7 +413,7 @@ function animate() {
     controls.update();
     renderer.render(scene, camera);
 }
-animate();
+animate(); // Safely running on global runtime loop initialization
 
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
