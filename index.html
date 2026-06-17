@@ -1,22 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="preload" href="./MYSchool_project9.glb" as="fetch" crossorigin="anonymous" fetchpriority="high">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEXUS - UNIMED</title>
-  <script type="module" crossorigin src="./assets/index-DOQh-o7b.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-CG52Dugo.css">
+  <script type="module" crossorigin src="/assets/index-DSAQpRBw.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-B_uo6X-u.css">
 </head>
 <body>
 
     <div id="loading-screen">
       <div class="spinner"></div>
-      <p>Loading NEXUS 3D Environment... Please wait</p>
+      <p id="nexus-loading-text">Loading NEXUS 3D Environment... Please wait</p>
     </div>
     
     <canvas id="three-canvas"></canvas>
 
-    <div class="interface">
+    <div class="interface" id="nexus-interface" style="opacity: 0; pointer-events: none; transition: opacity 0.5s ease-in-out;">
         
         <div class="top-nav">
             <div class="logo">NEXUS // UNIMED</div>
@@ -48,12 +49,6 @@
         <div id="marker-toast" class="marker-toast" style="display: none;">
             Scroll around till diamond marker is found for offices, buildings do not all have a diamond marker.
         </div>
-
-          <div id="feedback-prompt" class="feedback-prompt">
-        <p style="font-size: 11px; margin: 0 0 10px 0;">Help us improve Nexus!</p>
-        <a id="form-btn" href="javascript:void(0);" target="_blank" style="color: var(--neon); font-size: 11px; text-decoration: none; font-weight: bold;">FILL GOOGLE FORM →</a>
-      </div>
-
         <div class="status-tag" id="load-status">INITIALIZING NEXUS...</div>
     </div>
 
