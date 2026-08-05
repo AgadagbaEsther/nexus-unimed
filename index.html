@@ -1,10 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="preload" href="./MYSchool_project9.glb" as="fetch" crossorigin="anonymous" fetchpriority="high">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEXUS - UNIMED</title>
+
+    <!-- Preload the model since it's the largest asset on the critical path -->
+    <link rel="preload" href="./MYSchool_project9.glb" as="fetch" crossorigin="anonymous" fetchpriority="high">
+
+    <!-- Warm up the connection to Google's Draco decoder host before it's needed -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://www.gstatic.com">
 </head>
 <body>
 
@@ -12,11 +18,11 @@
       <div class="spinner"></div>
       <p id="nexus-loading-text">Loading NEXUS 3D Environment... Please wait</p>
     </div>
-    
+
     <canvas id="three-canvas"></canvas>
 
-    <div class="interface" id="nexus-interface" style="opacity: 0; pointer-events: none; transition: opacity 0.5s ease-in-out;">
-        
+    <div class="interface" id="nexus-interface">
+
         <div class="top-nav">
             <div class="logo">NEXUS // UNIMED</div>
             <div class="search-container">
@@ -35,7 +41,7 @@
         </button>
 
         <div id="guide-tooltip" class="guide-tooltip">
-            <span>Click to view building directory details! NOTE:100lv/first-years were priorotized,visitors are welcome!</span>
+            <span>Click to view building directory details! NOTE: 100lv/first-years were prioritized, visitors are welcome!</span>
             <div class="tooltip-arrow"></div>
         </div>
 
@@ -50,7 +56,7 @@
         <div class="status-tag" id="load-status">INITIALIZING NEXUS...</div>
     </div>
 
-    <script type="module" src="src/main.js" defer></script>
+    <script type="module" src="src/main.js"></script>
 
     <div style="position: fixed; bottom: 15px; left: 15px; font-size: 10px; color: #00ffcc; z-index: 9999; pointer-events: none; text-shadow: 1px 1px 2px black; font-family: monospace;">
         &copy; 2026 NEXUS // Agadagba Esther // agadagbaesther@gmail.com

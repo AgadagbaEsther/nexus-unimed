@@ -1,143 +1,257 @@
 // NEXUS Project - Developed by Agadagba Esther (2025-2026)
-import './style.css'; // This tells Vite to load your CSS
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import gsap from 'gsap';
+
+import './style.css';
 import { buildingMap } from './location.js';
 
-// --- 1. PROFESSIONAL THROTTLING ENGINE CONTROLS ---
-let isModelReady = false; 
-
-function handleLoadComplete() {
-    const progressText = document.getElementById('nexus-loading-text');
-    if (progressText) progressText.innerText = `Assembling NEXUS Environment... 100%`;
-
-    const loaderElement = document.getElementById('loading-screen');
-    const interfaceElement = document.getElementById('nexus-interface');
-
-    // Smoothly fade away the blocker overlay
-    if (loaderElement) {
-        loaderElement.style.transition = 'opacity 0.5s ease-in-out';
-        loaderElement.style.opacity = '0';
-        setTimeout(() => loaderElement.remove(), 500);
-    }
-
-    // Activate and reveal the user interface safely without thread clashing
-    if (interfaceElement) {
-        interfaceElement.style.opacity = '1';
-    }
-
-    const loadStatus = document.getElementById('load-status');
-    if (loadStatus) loadStatus.innerText = "SYSTEM ONLINE";
-
-    // Set engine state to active and force awake interaction variables
-    isModelReady = true;
-    controls.enabled = true;
-    controls.update();
-}
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x05080a);
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
-const birdsEye = { x: 500, y: 750, z: 500 };
-camera.position.set(birdsEye.x, birdsEye.y, birdsEye.z);
-
-const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#three-canvas'), antialias: true, powerPreference: "high-performance"});
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.localClippingEnabled = true;
-
-// 🛠️ FIX: Do not set controls.enabled to false here. Keep it active so the DOM hooks match up.
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-scene.add(new THREE.AmbientLight(0xffffff, 2.5));
-
-const dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
-
-const loader = new GLTFLoader();
-loader.setDRACOLoader(dracoLoader);
-
-const clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 2000);
-const marker = new THREE.Mesh(
-    new THREE.OctahedronGeometry(0.3, 0), 
-    new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true })
-);
-marker.visible = false;
-scene.add(marker);
-
-let campus, searchCount = 0;
-const originalPositions = new Map(); 
+// --- SHARED STATE (populated once the 3D engine finishes initializing) ---
+let scene, camera, renderer, controls, campus, clipPlane, marker, THREE, gsap;
+let isModelReady = false;
+let searchCount = 0;
+const originalPositions = new Map();
 let currentlyLifted = [];
 let currentlySliced = [];
 
-// --- CUSTOM DROPDOWN ENGINE SET-UP ---
+// --- DOM REFERENCES (safe to grab immediately) ---
 const dList = document.getElementById('building-options');
 const searchInput = document.getElementById('nexus-search');
 const arrowBtn = document.getElementById('dropdown-arrow');
+const toggleBtnNode = document.getElementById('panel-toggle');
+const sidePanelNode = document.getElementById('side-panel');
+const tooltipNode = document.getElementById('guide-tooltip');
 
+// ---------------------------------------------------------------------
+// 1. LIGHTWEIGHT UI THAT DOESN'T NEED THE 3D ENGINE
+//    (runs immediately, keeps the page interactive fast)
+// ---------------------------------------------------------------------
 if (dList) {
+    const frag = document.createDocumentFragment();
     Object.values(buildingMap).forEach(data => {
-        let li = document.createElement('li');
+        const li = document.createElement('li');
         li.innerText = data.displayName;
-        
         li.addEventListener('click', () => {
             if (searchInput) searchInput.value = data.displayName;
-            performSearch(data.displayName); 
-            closeDropdown(); 
+            performSearch(data.displayName);
+            closeDropdown();
         });
-        
-        dList.appendChild(li);
+        frag.appendChild(li);
     });
+    dList.appendChild(frag);
 }
 
 function openDropdownFull() {
-    if (!dList) return; 
-    Array.from(dList.children).forEach(li => li.style.display = 'block');
+    if (!dList) return;
+    Array.from(dList.children).forEach(li => (li.style.display = 'block'));
     dList.style.display = 'block';
     if (arrowBtn) arrowBtn.classList.add('open');
 }
 
 function closeDropdown() {
-    if (!dList) return; 
+    if (!dList) return;
     dList.style.display = 'none';
     if (arrowBtn) arrowBtn.classList.remove('open');
 }
 
-// --- STREAMING PIPELINE ENTRY ---
-loader.load('./MYSchool_project9.glb', (gltf) => {
-    campus = gltf.scene;
-    
-    campus.position.x = -60; 
-    campus.position.z = -20; 
-    campus.rotation.y = Math.PI / 4; 
+if (arrowBtn) {
+    arrowBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (sidePanelNode) sidePanelNode.classList.remove('active');
+        if (toggleBtnNode) toggleBtnNode.classList.remove('open');
+        if (dList && dList.style.display === 'block') closeDropdown();
+        else openDropdownFull();
+    });
+}
 
-    scene.add(campus);
-    
-    campus.traverse(child => {
-        if (child.name) {
-            originalPositions.set(child.name, child.position.clone());
+if (toggleBtnNode && sidePanelNode) {
+    toggleBtnNode.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (tooltipNode) tooltipNode.classList.remove('show');
+        const isOpen = toggleBtnNode.classList.toggle('open');
+        sidePanelNode.classList.toggle('active', isOpen);
+    });
+}
+
+if (searchInput) {
+    searchInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (sidePanelNode) sidePanelNode.classList.remove('active');
+        if (toggleBtnNode) toggleBtnNode.classList.remove('open');
+        if (searchInput.value.trim() === '') openDropdownFull();
+    });
+
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            if (sidePanelNode) sidePanelNode.classList.remove('active');
+            if (toggleBtnNode) toggleBtnNode.classList.remove('open');
+            performSearch(e.target.value);
+            closeDropdown();
         }
     });
 
-    // Asset parsing completed successfully, fire interface sequence safely
-    handleLoadComplete();
-}, 
-function(xhr) {
-    // 🛠️ FIX: Calculate real native loading percentages cleanly without guessing or clamping at 95%
-    if (xhr.total > 0) {
-        const percent = Math.round((xhr.loaded / xhr.total) * 100);
-        const progressText = document.getElementById('nexus-loading-text');
-        if (progressText) progressText.innerText = `Assembling NEXUS Environment... ${percent}%`;
-    }
-},
-function(error) {
-    console.error('An error happened layout loading:', error);
+    searchInput.addEventListener('input', (e) => {
+        const val = e.target.value.toLowerCase().trim();
+        let hasResults = false;
+        if (sidePanelNode) sidePanelNode.classList.remove('active');
+        if (toggleBtnNode) toggleBtnNode.classList.remove('open');
+
+        if (val === '') { openDropdownFull(); return; }
+
+        if (dList) {
+            Array.from(dList.children).forEach(li => {
+                const match = li.innerText.toLowerCase().includes(val);
+                li.style.display = match ? 'block' : 'none';
+                if (match) hasResults = true;
+            });
+            dList.style.display = hasResults ? 'block' : 'none';
+            if (arrowBtn) arrowBtn.classList.toggle('open', hasResults);
+        }
+    });
+}
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-box')) closeDropdown();
 });
 
-// --- TIMED SEQUENTIAL UX SELECTION ENGINE ---
+// ---------------------------------------------------------------------
+// 2. SEARCH / SELECTION ENTRY POINT
+//    Safe to call before the engine is ready — it just no-ops.
+// ---------------------------------------------------------------------
+function performSearch(query) {
+    if (!isModelReady) return; // engine not loaded yet, ignore
+    const val = query.toLowerCase().trim();
+    const key = Object.keys(buildingMap).find(
+        k => k.toLowerCase() === val || buildingMap[k].displayName.toLowerCase().includes(val)
+    );
+    if (!key) return;
+    const data = buildingMap[key];
+    const targetObj = scene.getObjectByName(data.body || key);
+    if (!targetObj) return;
+    const worldPos = new THREE.Vector3();
+    targetObj.getWorldPosition(worldPos);
+    processSelection(data, worldPos);
+}
+
+// ---------------------------------------------------------------------
+// 3. HEAVY 3D ENGINE — loaded + initialized during idle time
+// ---------------------------------------------------------------------
+function whenIdle(fn) {
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(fn, { timeout: 2000 });
+    } else {
+        setTimeout(fn, 200);
+    }
+}
+
+whenIdle(initEngine);
+
+async function initEngine() {
+    // Dynamic imports = separate chunks, not parsed/executed until now.
+    const [threeMod, gltfMod, orbitMod, dracoMod, gsapMod] = await Promise.all([
+        import('three'),
+        import('three/examples/jsm/loaders/GLTFLoader.js'),
+        import('three/examples/jsm/controls/OrbitControls.js'),
+        import('three/examples/jsm/loaders/DRACOLoader.js'),
+        import('gsap'),
+    ]);
+
+    THREE = threeMod;
+    gsap = gsapMod.default;
+    const { GLTFLoader } = gltfMod;
+    const { OrbitControls } = orbitMod;
+    const { DRACOLoader } = dracoMod;
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x05080a);
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
+    const birdsEye = { x: 500, y: 750, z: 500 };
+    camera.position.set(birdsEye.x, birdsEye.y, birdsEye.z);
+
+    renderer = new THREE.WebGLRenderer({
+        canvas: document.querySelector('#three-canvas'),
+        antialias: true,
+        powerPreference: 'high-performance',
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    // Capping at 2 is fine on desktop; consider capping at 1.5 if you need
+    // more headroom on mid-range phones.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.localClippingEnabled = true;
+
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    scene.add(new THREE.AmbientLight(0xffffff, 2.5));
+
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+
+    const loader = new GLTFLoader();
+    loader.setDRACOLoader(dracoLoader);
+
+    clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 2000);
+    marker = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.3, 0),
+        new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true })
+    );
+    marker.visible = false;
+    scene.add(marker);
+
+    // Throttle progress text updates to animation frames instead of every
+    // single progress event (some browsers fire these very rapidly).
+    let progressRAF = null;
+    loader.load(
+        './MYSchool_project9.glb',
+        (gltf) => {
+            campus = gltf.scene;
+            campus.position.x = -60;
+            campus.position.z = -20;
+            campus.rotation.y = Math.PI / 4;
+            scene.add(campus);
+
+            campus.traverse(child => {
+                if (child.name) originalPositions.set(child.name, child.position.clone());
+            });
+
+            handleLoadComplete(birdsEye);
+        },
+        (xhr) => {
+            if (xhr.total > 0 && !progressRAF) {
+                progressRAF = requestAnimationFrame(() => {
+                    const percent = Math.round((xhr.loaded / xhr.total) * 100);
+                    const progressText = document.getElementById('nexus-loading-text');
+                    if (progressText) progressText.innerText = `Assembling NEXUS Environment... ${percent}%`;
+                    progressRAF = null;
+                });
+            }
+        },
+        (error) => console.error('An error happened loading the model:', error)
+    );
+
+    setupPointerEvents();
+    setupResize();
+    startRenderLoop();
+}
+
+function handleLoadComplete() {
+    const progressText = document.getElementById('nexus-loading-text');
+    if (progressText) progressText.innerText = 'Assembling NEXUS Environment... 100%';
+
+    const loaderElement = document.getElementById('loading-screen');
+    const interfaceElement = document.getElementById('nexus-interface');
+
+    if (loaderElement) {
+        loaderElement.style.transition = 'opacity 0.5s ease-in-out';
+        loaderElement.style.opacity = '0';
+        setTimeout(() => loaderElement.remove(), 500);
+    }
+    if (interfaceElement) interfaceElement.style.opacity = '1';
+
+    const loadStatus = document.getElementById('load-status');
+    if (loadStatus) loadStatus.innerText = 'SYSTEM ONLINE';
+
+    isModelReady = true;
+    controls.enabled = true;
+    controls.update();
+}
+
 function processSelection(data, point) {
     const panel = document.getElementById('side-panel');
     const toggleBtn = document.getElementById('panel-toggle');
@@ -148,44 +262,38 @@ function processSelection(data, point) {
     if (toggleBtn) toggleBtn.classList.remove('open');
     if (tooltip) tooltip.classList.remove('show');
 
+    const birdsEye = { x: 500, y: 750, z: 500 };
+
     resetSurgically(() => {
-        // 🔒 FIX: Kill running camera tweens and completely release controls when timeline completes
         const tl = gsap.timeline({
             onComplete: () => {
                 controls.enabled = true;
                 controls.update();
-            }
+            },
         });
 
-        // 🔒 Temporarily freeze touch interactions during camera flight to prevent layout breaks
         controls.enabled = false;
 
-        tl.to(camera.position, { 
-            x: birdsEye.x, 
-            y: birdsEye.y, 
-            z: birdsEye.z, 
-            duration: 1, 
-            ease: "power2.inOut" 
-        });
+        tl.to(camera.position, { x: birdsEye.x, y: birdsEye.y, z: birdsEye.z, duration: 1, ease: 'power2.inOut' });
 
         tl.to(camera.position, {
-            x: point.x + 45, 
-            y: point.y + 40, 
+            x: point.x + 45,
+            y: point.y + 40,
             z: point.z + 45,
-            duration: 2.5, 
-            ease: "power2.inOut",
+            duration: 2.5,
+            ease: 'power2.inOut',
             onStart: () => {
                 const viewName = document.getElementById('view-name');
                 const viewDesc = document.getElementById('view-desc');
                 if (viewName) viewName.innerText = data.displayName;
                 if (viewDesc) viewDesc.innerText = data.description;
-                
+
                 const campusNotice = document.querySelector('.campus-notice');
                 if (campusNotice) campusNotice.style.display = 'none';
-                
-                marker.position.set(point.x, point.y + 0.5, point.z); 
+
+                marker.position.set(point.x, point.y + 0.5, point.z);
                 marker.visible = true;
-                
+
                 if (searchCount < 3 && toast) {
                     toast.style.display = 'block';
                     setTimeout(() => { toast.style.display = 'none'; }, 3000);
@@ -194,29 +302,28 @@ function processSelection(data, point) {
                 }
             },
             onComplete: () => {
-                searchCount++; 
-
+                searchCount++;
                 if (searchCount <= 2 && tooltip) {
                     setTimeout(() => {
                         if (toggleBtn && !toggleBtn.classList.contains('open')) {
                             tooltip.classList.add('show');
                             setTimeout(() => tooltip.classList.remove('show'), 5500);
                         }
-                    }, 2200); 
+                    }, 2200);
                 }
-            }
+            },
         });
 
         tl.to(controls.target, {
-            x: point.x, 
-            y: point.y, 
+            x: point.x,
+            y: point.y,
             z: point.z,
-            duration: 2.5, 
-            ease: "power2.inOut", // Smooth interpolation easing parameter
-            onUpdate: () => controls.update() 
-        }, "-=2.5"); 
+            duration: 2.5,
+            ease: 'power2.inOut',
+            onUpdate: () => controls.update(),
+        }, '-=2.5');
 
-        tl.add(() => executeBuildingAnimations(data, point), "-=1.5");
+        tl.add(() => executeBuildingAnimations(data, point), '-=1.5');
     });
 }
 
@@ -236,23 +343,22 @@ function executeBuildingAnimations(data, point) {
         const targets = data.slicerTargets || (data.slicerTarget ? [data.slicerTarget] : []);
         targets.forEach(tName => {
             const root = scene.getObjectByName(tName);
-            if (root) {
-                root.updateMatrixWorld(true);
-                root.traverse(child => {
-                    if (child.isMesh) {
-                        currentlySliced.push(child);
-                        if (!child.userData.originalMat) {
-                            child.userData.originalMat = child.material;
-                            child.material = child.material.clone();
-                        }
-                        child.material.clippingPlanes = [clipPlane];
+            if (!root) return;
+            root.updateMatrixWorld(true);
+            root.traverse(child => {
+                if (child.isMesh) {
+                    currentlySliced.push(child);
+                    if (!child.userData.originalMat) {
+                        child.userData.originalMat = child.material;
+                        child.material = child.material.clone();
                     }
-                });
-                let targetY = (data.sliceDepth) ? 
-                    (new THREE.Box3().setFromObject(root).max.y - data.sliceDepth) : 
-                    (point.y + (data.sliceOffset || 3.0));
-                gsap.to(clipPlane, { constant: targetY, duration: 1.5 });
-            }
+                    child.material.clippingPlanes = [clipPlane];
+                }
+            });
+            const targetY = data.sliceDepth
+                ? new THREE.Box3().setFromObject(root).max.y - data.sliceDepth
+                : point.y + (data.sliceOffset || 3.0);
+            gsap.to(clipPlane, { constant: targetY, duration: 1.5 });
         });
     }
 }
@@ -262,169 +368,104 @@ function resetSurgically(onDone) {
     gsap.to(clipPlane, { constant: 2000, duration: 0.8 });
     currentlySliced.forEach(obj => { if (obj.material) obj.material.clippingPlanes = null; });
     currentlySliced = [];
+
     if (currentlyLifted.length === 0) { onDone(); return; }
+
     let count = 0;
     currentlyLifted.forEach(obj => {
         const home = originalPositions.get(obj.name);
+        const finish = () => {
+            count++;
+            if (count === currentlyLifted.length) { currentlyLifted = []; onDone(); }
+        };
         if (home) {
-            gsap.to(obj.position, { x: home.x, y: home.y, z: home.z, duration: 0.8, onComplete: () => {
-                count++; if (count === currentlyLifted.length) { currentlyLifted = []; onDone(); }
-            }});
+            gsap.to(obj.position, { x: home.x, y: home.y, z: home.z, duration: 0.8, onComplete: finish });
         } else {
-            count++; if (count === currentlyLifted.length) { currentlyLifted = []; onDone(); }
+            finish();
         }
     });
 }
 
-function performSearch(query) {
-    const val = query.toLowerCase().trim();
-    const key = Object.keys(buildingMap).find(k => 
-        k.toLowerCase() === val || buildingMap[k].displayName.toLowerCase().includes(val)
-    );
-    if (key) {
-        const data = buildingMap[key];
-        const targetObj = scene.getObjectByName(data.body || key); 
-        if (targetObj) {
-            const worldPos = new THREE.Vector3();
-            targetObj.getWorldPosition(worldPos);
-            processSelection(data, worldPos);
-        }
-    }
-}
+// ---------------------------------------------------------------------
+// 4. POINTER / RESIZE / RENDER LOOP
+// ---------------------------------------------------------------------
+function setupPointerEvents() {
+    const mouseDownPos = new THREE.Vector2();
+    window.addEventListener('mousedown', (e) => { mouseDownPos.set(e.clientX, e.clientY); }, { passive: true });
 
-// --- INTERACTIVE EVENT CONTROL LAYERS ---
-const toggleBtnNode = document.getElementById('panel-toggle');
-const sidePanelNode = document.getElementById('side-panel');
-const tooltipNode = document.getElementById('guide-tooltip');
+    window.addEventListener('mouseup', (e) => {
+        const mouseUpPos = new THREE.Vector2(e.clientX, e.clientY);
+        if (mouseDownPos.distanceTo(mouseUpPos) >= 5) return;
 
-if (toggleBtnNode && sidePanelNode) {
-    toggleBtnNode.addEventListener('click', (e) => {
-        e.stopPropagation(); 
-        if (tooltipNode) tooltipNode.classList.remove('show'); 
-
-        const isOpen = toggleBtnNode.classList.toggle('open');
-        if (isOpen) {
-            sidePanelNode.classList.add('active');
-        } else {
-            sidePanelNode.classList.remove('active');
-        }
-    });
-}
-
-if (arrowBtn) {
-    arrowBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); 
-        if (sidePanelNode) sidePanelNode.classList.remove('active');
-        if (toggleBtnNode) toggleBtnNode.classList.remove('open');
-        
-        if (dList && dList.style.display === 'block') {
-            closeDropdown();
-        } else {
-            openDropdownFull();
-        }
-    });
-}
-
-if (searchInput) {
-    searchInput.addEventListener('click', (e) => {
-        e.stopPropagation(); 
-        if (sidePanelNode) sidePanelNode.classList.remove('active');
-        if (toggleBtnNode) toggleBtnNode.classList.remove('open');
-        if (searchInput.value.trim() === '') openDropdownFull();
-    });
-
-    searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            if (sidePanelNode) sidePanelNode.classList.remove('active');
-            if (toggleBtnNode) toggleBtnNode.classList.remove('open');
-            performSearch(e.target.value);
-            closeDropdown();
-        }
-    });
-
-    searchInput.addEventListener('input', (e) => {
-        const val = e.target.value.toLowerCase().trim();
-        let hasResults = false;
-
-        if (sidePanelNode) sidePanelNode.classList.remove('active');
-        if (toggleBtnNode) toggleBtnNode.classList.remove('open');
-
-        if (val === "") { openDropdownFull(); return; }
-
-        if (dList) {
-            Array.from(dList.children).forEach(li => {
-                if (li.innerText.toLowerCase().includes(val)) {
-                    li.style.display = 'block';
-                    hasResults = true;
-                } else {
-                    li.style.display = 'none';
-                }
-            });
-            if (hasResults) {
-                dList.style.display = 'block';
-                if (arrowBtn) arrowBtn.classList.add('open');
-            } else {
-                dList.style.display = 'none';
-                if (arrowBtn) arrowBtn.classList.remove('open');
-            }
-        }
-    });
-}
-
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('.search-box')) closeDropdown();
-});
-
-let mouseDownPos = new THREE.Vector2();
-window.addEventListener('mousedown', (e) => { mouseDownPos.set(e.clientX, e.clientY); });
-
-window.addEventListener('mouseup', (e) => {
-    const mouseUpPos = new THREE.Vector2(e.clientX, e.clientY);
-    const distance = mouseDownPos.distanceTo(mouseUpPos);
-
-    if (distance < 5) {
         const mouse = new THREE.Vector2(
             (e.clientX / window.innerWidth) * 2 - 1,
             -(e.clientY / window.innerHeight) * 2 + 1
         );
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, camera);
-        
+
         const intersects = raycaster.intersectObjects(scene.children, true);
         if (intersects.length > 0) {
-            let obj = intersects[0].object;
-            let entry = buildingMap[obj.name] || buildingMap[obj.parent?.name];
+            const obj = intersects[0].object;
+            const entry = buildingMap[obj.name] || buildingMap[obj.parent?.name];
             if (entry) {
                 const worldPos = new THREE.Vector3();
                 obj.getWorldPosition(worldPos);
                 processSelection(entry, worldPos);
             }
         }
-    }
-});
-
-// --- RENDER EXECUTION ENVIRONMENT ---
-function animate() {
-    requestAnimationFrame(animate);
-    if (marker.visible) {
-        marker.rotation.y += 0.04;
-        marker.position.y += Math.sin(Date.now() * 0.005) * 0.005;
-    }
-    controls.update();
-    renderer.render(scene, camera);
+    }, { passive: true });
 }
-animate(); // Safely running on global runtime loop initialization
 
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
+function setupResize() {
+    let resizeTimer = null;
+    const doResize = () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        lockMobileViewport();
+    };
+    // Debounced single handler replaces the two separate resize listeners
+    // that used to run on every resize/orientation event.
+    const onResize = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(doResize, 100);
+    };
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    lockMobileViewport();
+}
 
 function lockMobileViewport() {
-    let vh = window.innerHeight * 0.01;
+    const vh = window.innerHeight * 0.01;
     document.documentElement.style.setProperty('--vh', `${vh}px`);
 }
-window.addEventListener('resize', lockMobileViewport);
-window.addEventListener('orientationchange', lockMobileViewport);
-lockMobileViewport();
+
+function startRenderLoop() {
+    let rafId;
+    let isVisible = !document.hidden;
+
+    function animate() {
+        rafId = requestAnimationFrame(animate);
+        if (marker.visible) {
+            marker.rotation.y += 0.04;
+            marker.position.y += Math.sin(Date.now() * 0.005) * 0.005;
+        }
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    // Pause rendering entirely when the tab isn't visible — saves CPU/GPU
+    // and battery, and avoids unnecessary work counted against performance
+    // metrics on background tabs.
+    document.addEventListener('visibilitychange', () => {
+        isVisible = !document.hidden;
+        if (isVisible) {
+            animate();
+        } else {
+            cancelAnimationFrame(rafId);
+        }
+    });
+
+    animate();
+}

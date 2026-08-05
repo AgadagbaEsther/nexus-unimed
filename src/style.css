@@ -1,5 +1,5 @@
 /* ==========================================================================
-   1. GLOBAL ARCHITECTURE & CORE RESETS (MERGED & BULLETPROOF)
+   1. GLOBAL RESETS
    ========================================================================== */
 * {
     margin: 0;
@@ -7,112 +7,106 @@
     box-sizing: border-box;
 }
 
-:root { 
-    --neon: #00ffcc; 
-    --bg: #05080a; 
+:root {
+    --neon: #00ffcc;
+    --bg: #05080a;
 }
 
-body, html { 
-    margin: 0; 
-    padding: 0; 
-    background: var(--bg); 
-    font-family: 'Inter', sans-serif; 
-    color: white; 
-    
-    /* ✅ ENFORCED: Your layout perimeter walls */
-    overflow: hidden !important; 
-    overflow-x: hidden !important;
-    position: relative;
-    width: 100%; 
+body, html {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    font-family: 'Inter', sans-serif;
+    color: white;
 
-    /* 🛠️ PROFESSIONAL FIXED CONTROLS: */
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+
     height: 100%;
-    height: calc(var(--vh, 1vh) * 100); 
+    height: calc(var(--vh, 1vh) * 100);
     touch-action: none;
     -webkit-overflow-scrolling: auto;
 }
 
-#three-canvas { 
-    display: block; 
-    position: fixed; 
-    top: 0; 
-    left: 0; 
-    width: 100vw; 
-    /* 🛠️ PROFESSIONAL CANVAS PROFILE: */
-    height: 100%; 
-    height: calc(var(--vh, 1vh) * 100); 
-    z-index: 1; 
-    outline: none; 
+#three-canvas {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100%;
+    height: calc(var(--vh, 1vh) * 100);
+    z-index: 1;
+    outline: none;
 }
 
 /* ==========================================================================
-   2. INTERACTIVE USER INTERFACE LAYER
+   2. INTERFACE LAYER
    ========================================================================== */
-.interface { 
-    position: fixed; 
-    z-index: 10; 
-    width: 100%; /* ✅ CHANGED from 100vw: Blocks horizontal screen vibration on iOS */
-    pointer-events: none; 
-    display: flex; 
-    flex-direction: column; 
-    padding: 30px; 
-    box-sizing: border-box; 
-    overflow: hidden !important;
+.interface {
+    position: fixed;
+    z-index: 10;
+    width: 100%;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    padding: 30px;
+    box-sizing: border-box;
+    overflow: hidden;
 
-    /* 🛠️ PROFESSIONAL VIEWPORT MATCH: */
     height: 100%;
-    height: calc(var(--vh, 1vh) * 100); 
+    height: calc(var(--vh, 1vh) * 100);
     touch-action: none;
 }
 
-.top-nav { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    pointer-events: auto; 
+.top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: auto;
 }
 
-.logo { 
-    font-weight: 600; 
-    letter-spacing: 2px; 
-    color: var(--neon); 
-    text-transform: uppercase; 
-    font-size: 14px; 
+.logo {
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--neon);
+    text-transform: uppercase;
+    font-size: 14px;
 }
 
-/* Force critical interaction nodes to stay responsive */
-.top-nav, .side-panel, .feedback-prompt, .search-box, input, .panel-toggle { 
-    pointer-events: auto !important;
+.top-nav, .side-panel, .feedback-prompt, .search-box, input, .panel-toggle {
+    pointer-events: auto;
 }
 
 /* ==========================================================================
-   3. SEARCH COMPONENT & DROPDOWN MATRIX
+   3. SEARCH + DROPDOWN
    ========================================================================== */
 .search-container {
     position: relative;
 }
 
-.search-box { 
-    background: rgba(255, 255, 255, 0.05); 
-    backdrop-filter: blur(15px); 
-    border: 1px solid rgba(0, 255, 204, 0.3); 
-    padding: 10px 20px; 
-    border-radius: 50px; 
-    width: 300px; 
-    pointer-events: auto; 
+.search-box {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px); /* was 15px — slightly cheaper to composite */
+    border: 1px solid rgba(0, 255, 204, 0.3);
+    padding: 10px 20px 10px 20px;
+    padding-right: 40px;
+    border-radius: 50px;
+    width: 300px;
+    pointer-events: auto;
     position: relative;
     display: flex;
     align-items: center;
-    padding-right: 40px !important;
 }
 
-input { 
-    background: none; 
-    border: none; 
-    color: white; 
-    width: 100%; 
-    outline: none; 
-    font-size: 14px; 
+input {
+    background: none;
+    border: none;
+    color: white;
+    width: 100%;
+    outline: none;
+    font-size: 14px;
 }
 
 .dropdown-arrow {
@@ -136,14 +130,14 @@ input {
     left: 15px;
     width: calc(100% - 30px);
     background: rgba(5, 8, 10, 0.95);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(8px); /* was 10px */
     border: 1px solid var(--neon);
     border-radius: 12px;
     list-style: none;
     padding: 5px 0;
     margin: 0;
     z-index: 9999;
-    max-height: 240px; 
+    max-height: 240px;
     overflow-y: auto;
     display: none;
     box-shadow: 0px 5px 25px rgba(0, 255, 204, 0.2);
@@ -159,102 +153,100 @@ input {
     border-bottom: 1px solid rgba(0, 255, 204, 0.05);
 }
 
-.custom-dropdown li:last-child { 
-    border-bottom: none; 
+.custom-dropdown li:last-child {
+    border-bottom: none;
 }
 
-.custom-dropdown li:hover { 
-    background: rgba(0, 255, 204, 0.15); 
-    color: var(--neon); 
+.custom-dropdown li:hover {
+    background: rgba(0, 255, 204, 0.15);
+    color: var(--neon);
 }
 
-/* Smooth Custom Scrollbar */
-.custom-dropdown::-webkit-scrollbar { 
-    width: 6px; 
+.custom-dropdown::-webkit-scrollbar {
+    width: 6px;
 }
 
-.custom-dropdown::-webkit-scrollbar-track { 
-    background: rgba(0, 0, 0, 0.3); 
-    border-radius: 0 12px 12px 0; 
+.custom-dropdown::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 0 12px 12px 0;
 }
 
-.custom-dropdown::-webkit-scrollbar-thumb { 
-    background: var(--neon); 
-    border-radius: 10px; 
+.custom-dropdown::-webkit-scrollbar-thumb {
+    background: var(--neon);
+    border-radius: 10px;
 }
 
 /* ==========================================================================
-   4. CONTEXTUAL OVERLAYS (PANELS, TOASTS & SCANNERS)
+   4. PANELS, TOASTS, STATUS
    ========================================================================== */
 .side-panel {
-    position: absolute; 
-    right: 30px; 
-    top: 160px; /* 🛠️ ADJUSTED: Pushed down slightly to give room to the hamburger icon */
+    position: absolute;
+    right: 30px;
+    top: 160px;
     width: 300px;
-    background: rgba(255, 255, 255, 0.03); 
-    backdrop-filter: blur(20px);
-    border-left: 2px solid var(--neon); 
-    padding: 25px; 
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(14px); /* was 20px */
+    border-left: 2px solid var(--neon);
+    padding: 25px;
     border-radius: 15px;
-    pointer-events: auto; 
-    transform: translateX(150%); 
+    pointer-events: auto;
+    transform: translateX(150%);
     transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.side-panel.active { 
-    transform: translateX(0); 
+.side-panel.active {
+    transform: translateX(0);
 }
 
 #marker-toast {
-    position: fixed; 
-    bottom: 100px; 
-    left: 50%; 
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
     transform: translateX(-50%);
-    background: var(--neon); 
-    color: black; 
+    background: var(--neon);
+    color: black;
     padding: 12px 25px;
-    border-radius: 50px; 
-    font-weight: bold; 
+    border-radius: 50px;
+    font-weight: bold;
     font-size: 12px;
-    display: none; 
+    display: none;
     z-index: 100;
     text-align: center;
     width: 440px;
     max-width: 85%;
 }
 
-.status-tag { 
-    position: absolute; 
-    bottom: 30px; 
-    left: 30px; 
-    font-family: monospace; 
-    font-size: 10px; 
-    color: var(--neon); 
-    letter-spacing: 1px; 
+.status-tag {
+    position: absolute;
+    bottom: 30px;
+    left: 30px;
+    font-family: monospace;
+    font-size: 10px;
+    color: var(--neon);
+    letter-spacing: 1px;
 }
 
-
 /* ==========================================================================
-   5. OPTIMIZED ENGINE LOADING GRAPHICS
+   5. LOADING SCREEN
    ========================================================================== */
 #loading-screen {
     position: fixed;
-    top: 0; 
-    left: 0; 
-    width: 100%; 
+    top: 0;
+    left: 0;
+    width: 100%;
     height: 100%;
     background: #05080a;
     color: #00ffcc;
-    display: flex; 
+    display: flex;
     flex-direction: column;
-    justify-content: center; 
+    justify-content: center;
     align-items: center;
-    z-index: 10000; 
+    z-index: 10000;
     font-family: sans-serif;
 }
 
 .spinner {
-    width: 40px; 
+    width: 40px;
     height: 40px;
     border: 4px solid rgba(0, 255, 204, 0.1);
     border-top: 4px solid #00ffcc;
@@ -269,7 +261,7 @@ input {
 }
 
 /* ==========================================================================
-   6. PROGRESSIVE DISCLOSURE SYSTEM ENGINE
+   6. PANEL TOGGLE + TOOLTIP
    ========================================================================== */
 .panel-toggle {
     position: absolute;
@@ -278,7 +270,7 @@ input {
     width: 45px;
     height: 45px;
     background: rgba(5, 8, 10, 0.85);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(8px); /* was 10px */
     border: 1px solid var(--neon);
     border-radius: 8px;
     cursor: pointer;
@@ -288,7 +280,7 @@ input {
     align-items: center;
     gap: 5px;
     z-index: 100;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .panel-toggle:hover {
@@ -301,18 +293,16 @@ input {
     width: 22px;
     height: 2px;
     background-color: var(--neon);
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
-/* Transform icon to 'X' close graphic when open */
 .panel-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
 .panel-toggle.open span:nth-child(2) { opacity: 0; }
 .panel-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
-/* Floating Instruction Tooltip Box */
 .guide-tooltip {
     position: absolute;
-    right: 90px; 
+    right: 90px;
     top: 103px;
     background: var(--neon);
     color: #05080a;
@@ -329,7 +319,7 @@ input {
     z-index: 99;
     opacity: 0;
     transform: translateX(10px);
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: opacity 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     box-shadow: 0 4px 20px rgba(0, 255, 204, 0.3);
 }
 
@@ -338,7 +328,6 @@ input {
     transform: translateX(0);
 }
 
-/* Tiny UI Pointer Arrow directing eyes to the toggle button */
 .tooltip-arrow {
     position: absolute;
     right: -6px;
@@ -352,28 +341,27 @@ input {
 }
 
 /* ==========================================================================
-   7. MOBILE VIEW MEDIA ADAPTIVITY LAYER (OPTIMIZED FOR ANDROID)
+   7. MOBILE
    ========================================================================== */
 @media (max-width: 768px) {
     input, #nexus-search {
-        font-size: 16px !important; /* Blocks native mobile viewport auto-zooming mechanics */
-    }
-    
-    .interface { 
-        padding: 15px; 
-    }
-    
-    .logo { 
-        font-size: 11px; 
-        letter-spacing: 1px; 
+        font-size: 16px; /* blocks iOS auto-zoom on focus */
     }
 
-    .search-box { 
-        width: 65%; 
-        padding: 8px 15px; 
+    .interface {
+        padding: 15px;
     }
 
-    /* Hamburger Node Adjustments for Mobile Real-Estate */
+    .logo {
+        font-size: 11px;
+        letter-spacing: 1px;
+    }
+
+    .search-box {
+        width: 65%;
+        padding: 8px 15px;
+    }
+
     .panel-toggle {
         right: 15px;
         top: 85px;
@@ -389,43 +377,39 @@ input {
         max-width: 180px;
     }
 
-    /* Mobile Drawer Layer Layout Rules */
     .side-panel {
-        width: 90%;          
-        left: 5%;            
+        width: 90%;
+        left: 5%;
         right: auto;
-        top: 140px !important;            
-        padding: 15px;       
-        max-height: 220px;   
-        overflow-y: auto;    
+        top: 140px;
+        padding: 15px;
+        max-height: 220px;
+        overflow-y: auto;
     }
 
     .side-panel h2, #view-name {
-        font-size: 16px !important;
-        margin-bottom: 5px !important;
+        font-size: 16px;
+        margin-bottom: 5px;
     }
 
     #view-desc {
-        font-size: 11px !important;
-        line-height: 1.4 !important;
+        font-size: 11px;
+        line-height: 1.4;
     }
 
     #marker-toast {
-        width: 320px;       
+        width: 320px;
         max-width: 90%;
         font-size: 11px;
-        bottom: 170px;       
-        border-radius: 16px; 
+        bottom: 170px;
+        border-radius: 16px;
     }
 
-    /* ✅ CRITICAL ANDROID FIX: Safe-erasure of overlaying structural elements */
     #load-status {
-        display: none !important;
+        display: none;
     }
 }
 
-
-/* Smoothly fades in the NEXUS dashboard once the 3D canvas is ready */
 #nexus-interface {
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
