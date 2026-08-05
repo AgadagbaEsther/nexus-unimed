@@ -250,6 +250,7 @@ function handleLoadComplete() {
     isModelReady = true;
     controls.enabled = true;
     controls.update();
+    requestRender();
 }
 
 function processSelection(data, point) {
@@ -274,7 +275,7 @@ function processSelection(data, point) {
 
         controls.enabled = false;
 
-        tl.to(camera.position, { x: birdsEye.x, y: birdsEye.y, z: birdsEye.z, duration: 1, ease: 'power2.inOut' });
+        tl.to(camera.position, { x: birdsEye.x, y: birdsEye.y, z: birdsEye.z, duration: 1, ease: 'power2.inOut', onUpdate: requestRender });
 
         tl.to(camera.position, {
             x: point.x + 45,
@@ -282,6 +283,7 @@ function processSelection(data, point) {
             z: point.z + 45,
             duration: 2.5,
             ease: 'power2.inOut',
+            onUpdate: requestRender,
             onStart: () => {
                 const viewName = document.getElementById('view-name');
                 const viewDesc = document.getElementById('view-desc');
@@ -320,7 +322,7 @@ function processSelection(data, point) {
             z: point.z,
             duration: 2.5,
             ease: 'power2.inOut',
-            onUpdate: () => controls.update(),
+            onUpdate: () => { controls.update(); requestRender(); },
         }, '-=2.5');
 
         tl.add(() => executeBuildingAnimations(data, point), '-=1.5');
@@ -334,7 +336,7 @@ function executeBuildingAnimations(data, point) {
             if (obj) {
                 currentlyLifted.push(obj);
                 const home = originalPositions.get(obj.name);
-                if (home) gsap.to(obj.position, { y: home.y + 30, duration: 2 });
+                if (home) gsap.to(obj.position, { y: home.y + 30, duration: 2, onUpdate: requestRender });
             }
         });
     }
@@ -358,14 +360,15 @@ function executeBuildingAnimations(data, point) {
             const targetY = data.sliceDepth
                 ? new THREE.Box3().setFromObject(root).max.y - data.sliceDepth
                 : point.y + (data.sliceOffset || 3.0);
-            gsap.to(clipPlane, { constant: targetY, duration: 1.5 });
+            gsap.to(clipPlane, { constant: targetY, duration: 1.5, onUpdate: requestRender });
         });
     }
 }
 
 function resetSurgically(onDone) {
     marker.visible = false;
-    gsap.to(clipPlane, { constant: 2000, duration: 0.8 });
+    requestRender(); // marker just got hidden — needs one more frame to reflect that
+    gsap.to(clipPlane, { constant: 2000, duration: 0.8, onUpdate: requestRender });
     currentlySliced.forEach(obj => { if (obj.material) obj.material.clippingPlanes = null; });
     currentlySliced = [];
 
@@ -379,7 +382,7 @@ function resetSurgically(onDone) {
             if (count === currentlyLifted.length) { currentlyLifted = []; onDone(); }
         };
         if (home) {
-            gsap.to(obj.position, { x: home.x, y: home.y, z: home.z, duration: 0.8, onComplete: finish });
+            gsap.to(obj.position, { x: home.x, y: home.y, z: home.z, duration: 0.8, onUpdate: requestRender, onComplete: finish });
         } else {
             finish();
         }
@@ -441,31 +444,51 @@ function lockMobileViewport() {
     document.documentElement.style.setProperty('--vh', `${vh}px`);
 }
 
-function startRenderLoop() {
-    let rafId;
-    let isVisible = !document.hidden;
+// Set from startRenderLoop(); GSAP tween onUpdate hooks call this to flag
+// that a frame needs to be rendered.
+let requestRender = () => {};
 
-    function animate() {
-        rafId = requestAnimationFrame(animate);
+function startRenderLoop() {
+    let isVisible = !document.hidden;
+    let needsRender = true;
+
+    requestRender = () => { needsRender = true; };
+
+
+    function tick() {
+        if (!isVisible) return; // fully stops when tab is hidden
+
+        requestAnimationFrame(tick);
+
         if (marker.visible) {
             marker.rotation.y += 0.04;
             marker.position.y += Math.sin(Date.now() * 0.005) * 0.005;
+            needsRender = true;
         }
-        controls.update();
-        renderer.render(scene, camera);
+
+        // controls.update() is cheap math (no GPU work) and must run every
+        // frame for damping to interpolate smoothly. It returns true while
+        // the camera is still settling from a drag/zoom.
+        const stillMoving = controls.update();
+        if (stillMoving) needsRender = true;
+
+        if (needsRender) {
+            renderer.render(scene, camera);
+            needsRender = false;
+        }
     }
 
-    // Pause rendering entirely when the tab isn't visible — saves CPU/GPU
-    // and battery, and avoids unnecessary work counted against performance
-    // metrics on background tabs.
+    // Any drag, zoom, or pan fires 'change' on controls — flag a render.
+    controls.addEventListener('change', requestRender);
+
     document.addEventListener('visibilitychange', () => {
+        const wasHidden = !isVisible;
         isVisible = !document.hidden;
-        if (isVisible) {
-            animate();
-        } else {
-            cancelAnimationFrame(rafId);
+        if (isVisible && wasHidden) {
+            needsRender = true;
+            requestAnimationFrame(tick);
         }
     });
 
-    animate();
+    requestAnimationFrame(tick);
 }
