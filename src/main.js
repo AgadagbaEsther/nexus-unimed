@@ -131,6 +131,16 @@ function performSearch(query) {
 }
 
 // ---------------------------------------------------------------------
+// YIELD-TO-MAIN HELPER
+// ---------------------------------------------------------------------
+function yieldToMain() {
+    if ('scheduler' in window && 'yield' in window.scheduler) {
+        return window.scheduler.yield();
+    }
+    return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+// ---------------------------------------------------------------------
 // 3. HEAVY 3D ENGINE — loaded + initialized during idle time
 // ---------------------------------------------------------------------
 function whenIdle(fn) {
@@ -165,16 +175,18 @@ async function initEngine() {
     const birdsEye = { x: 500, y: 750, z: 500 };
     camera.position.set(birdsEye.x, birdsEye.y, birdsEye.z);
 
+    await yieldToMain(); // let the browser breathe before renderer/WebGL-context creation
+
     renderer = new THREE.WebGLRenderer({
         canvas: document.querySelector('#three-canvas'),
         antialias: true,
         powerPreference: 'high-performance',
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    // Capping at 2 is fine on desktop; consider capping at 1.5 if you need
-    // more headroom on mid-range phones.
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.localClippingEnabled = true;
+
+    await yieldToMain();
 
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -194,21 +206,52 @@ async function initEngine() {
     marker.visible = false;
     scene.add(marker);
 
+    await yieldToMain(); // one more breath before kicking off the model fetch/parse
+
     // Throttle progress text updates to animation frames instead of every
     // single progress event (some browsers fire these very rapidly).
     let progressRAF = null;
     loader.load(
         './MYSchool_project9.glb',
-        (gltf) => {
+        async (gltf) => {
             campus = gltf.scene;
             campus.position.x = -60;
             campus.position.z = -20;
             campus.rotation.y = Math.PI / 4;
             scene.add(campus);
 
-            campus.traverse(child => {
-                if (child.name) originalPositions.set(child.name, child.position.clone());
-            });
+            // Chunk the traversal instead of doing it as one single pass.
+            // On a model with many nodes, walking + cloning position data
+            // for every one of them in one go can itself be a long task.
+            // Collecting into an array first lets us process it in small
+            // batches with a yield between each, so no single task blocks
+            // the main thread for long.
+            const allNodes = [];
+            campus.traverse(child => allNodes.push(child));
+
+            const BATCH_SIZE = 200;
+            for (let i = 0; i < allNodes.length; i += BATCH_SIZE) {
+                const batch = allNodes.slice(i, i + BATCH_SIZE);
+                for (const child of batch) {
+                    if (child.name) originalPositions.set(child.name, child.position.clone());
+                }
+                if (i + BATCH_SIZE < allNodes.length) await yieldToMain();
+            }
+
+            await yieldToMain();
+
+            // Precompile all shaders/materials for the loaded scene up front.
+            // Without this, the FIRST time renderer.render() actually draws
+            // this scene, the GPU driver has to compile every shader on the
+            // spot — a classic three.js cause of a single large "long task"
+            // right when the model appears. compileAsync does that work
+            // ahead of time instead, so the first real frame is cheap.
+            if (renderer.compileAsync) {
+                await renderer.compileAsync(scene, camera);
+            } else {
+                renderer.compile(scene, camera);
+                await yieldToMain();
+            }
 
             handleLoadComplete(birdsEye);
         },
@@ -428,8 +471,7 @@ function setupResize() {
         renderer.setSize(window.innerWidth, window.innerHeight);
         lockMobileViewport();
     };
-    // Debounced single handler replaces the two separate resize listeners
-    // that used to run on every resize/orientation event.
+
     const onResize = () => {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(doResize, 100);
