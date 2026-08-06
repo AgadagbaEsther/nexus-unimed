@@ -153,10 +153,7 @@ function whenIdle(fn) {
 whenIdle(initEngine);
 
 async function initEngine() {
-    // Only the libraries needed to get the model on screen are loaded here.
-    // GSAP is deferred separately below — it's not needed until the user
-    // actually clicks a building, so parsing/executing it doesn't need to
-    // compete with getting the model visible.
+   
     const [threeMod, gltfMod, orbitMod, dracoMod] = await Promise.all([
         import('three'),
         import('three/examples/jsm/loaders/GLTFLoader.js'),
@@ -220,12 +217,7 @@ async function initEngine() {
             campus.rotation.y = Math.PI / 4;
             scene.add(campus);
 
-            // Chunk the traversal instead of doing it as one single pass.
-            // On a model with many nodes, walking + cloning position data
-            // for every one of them in one go can itself be a long task.
-            // Collecting into an array first lets us process it in small
-            // batches with a yield between each, so no single task blocks
-            // the main thread for long.
+        
             const allNodes = [];
             campus.traverse(child => allNodes.push(child));
 
@@ -240,12 +232,7 @@ async function initEngine() {
 
             await yieldToMain();
 
-            // Precompile all shaders/materials for the loaded scene up front.
-            // Without this, the FIRST time renderer.render() actually draws
-            // this scene, the GPU driver has to compile every shader on the
-            // spot — a classic three.js cause of a single large "long task"
-            // right when the model appears. compileAsync does that work
-            // ahead of time instead, so the first real frame is cheap.
+        
             if (renderer.compileAsync) {
                 await renderer.compileAsync(scene, camera);
             } else {
@@ -273,9 +260,6 @@ async function initEngine() {
     startRenderLoop();
 }
 
-// Lazily loads GSAP the first time it's needed, and also kicked off
-// proactively (fire-and-forget) once the model is visible, so it's warm
-// in the background by the time the user actually clicks a building.
 let gsapPromise = null;
 function ensureGsap() {
     if (!gsapPromise) {
@@ -309,9 +293,6 @@ function handleLoadComplete() {
     controls.update();
     requestRender();
 
-    // Model is visible now — warm up GSAP in the background so it's ready
-    // by the time the user clicks a building, without having competed for
-    // main-thread time during the critical initial load.
     whenIdle(ensureGsap);
 }
 
@@ -529,9 +510,7 @@ function startRenderLoop() {
             needsRender = true;
         }
 
-        // controls.update() is cheap math (no GPU work) and must run every
-        // frame for damping to interpolate smoothly. It returns true while
-        // the camera is still settling from a drag/zoom.
+       
         const stillMoving = controls.update();
         if (stillMoving) needsRender = true;
 
