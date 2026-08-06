@@ -1,6 +1,5 @@
 // NEXUS Project - Developed by Agadagba Esther (2025-2026)
 
-import './style.css';
 import { buildingMap } from './location.js';
 
 // --- SHARED STATE (populated once the 3D engine finishes initializing) ---
@@ -154,17 +153,18 @@ function whenIdle(fn) {
 whenIdle(initEngine);
 
 async function initEngine() {
-    // Dynamic imports = separate chunks, not parsed/executed until now.
-    const [threeMod, gltfMod, orbitMod, dracoMod, gsapMod] = await Promise.all([
+    // Only the libraries needed to get the model on screen are loaded here.
+    // GSAP is deferred separately below — it's not needed until the user
+    // actually clicks a building, so parsing/executing it doesn't need to
+    // compete with getting the model visible.
+    const [threeMod, gltfMod, orbitMod, dracoMod] = await Promise.all([
         import('three'),
         import('three/examples/jsm/loaders/GLTFLoader.js'),
         import('three/examples/jsm/controls/OrbitControls.js'),
         import('three/examples/jsm/loaders/DRACOLoader.js'),
-        import('gsap'),
     ]);
 
     THREE = threeMod;
-    gsap = gsapMod.default;
     const { GLTFLoader } = gltfMod;
     const { OrbitControls } = orbitMod;
     const { DRACOLoader } = dracoMod;
@@ -229,7 +229,7 @@ async function initEngine() {
             const allNodes = [];
             campus.traverse(child => allNodes.push(child));
 
-            const BATCH_SIZE = 200;
+            const BATCH_SIZE = 75;
             for (let i = 0; i < allNodes.length; i += BATCH_SIZE) {
                 const batch = allNodes.slice(i, i + BATCH_SIZE);
                 for (const child of batch) {
@@ -273,6 +273,20 @@ async function initEngine() {
     startRenderLoop();
 }
 
+// Lazily loads GSAP the first time it's needed, and also kicked off
+// proactively (fire-and-forget) once the model is visible, so it's warm
+// in the background by the time the user actually clicks a building.
+let gsapPromise = null;
+function ensureGsap() {
+    if (!gsapPromise) {
+        gsapPromise = import('gsap').then((mod) => {
+            gsap = mod.default;
+            return gsap;
+        });
+    }
+    return gsapPromise;
+}
+
 function handleLoadComplete() {
     const progressText = document.getElementById('nexus-loading-text');
     if (progressText) progressText.innerText = 'Assembling NEXUS Environment... 100%';
@@ -294,9 +308,16 @@ function handleLoadComplete() {
     controls.enabled = true;
     controls.update();
     requestRender();
+
+    // Model is visible now — warm up GSAP in the background so it's ready
+    // by the time the user clicks a building, without having competed for
+    // main-thread time during the critical initial load.
+    whenIdle(ensureGsap);
 }
 
-function processSelection(data, point) {
+async function processSelection(data, point) {
+    await ensureGsap(); // no-op if already loaded — resolves instantly
+
     const panel = document.getElementById('side-panel');
     const toggleBtn = document.getElementById('panel-toggle');
     const tooltip = document.getElementById('guide-tooltip');
