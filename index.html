@@ -5,13 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEXUS - UNIMED</title>
 
-    <!--
-      SEO fix: this was flagged as missing in your PageSpeed Insights
-      report. If it's still showing as missing after you deploy this,
-      double-check the deployed live HTML (view-source on the live URL)
-      to confirm this line actually made it into what got pushed —
-      sometimes an edit gets made locally but not rebuilt/redeployed.
-    -->
     <meta name="description" content="NEXUS is an interactive web-based 3D campus navigation system developed for the University of Medical Sciences, Ondo. It enables users to locate buildings, offices, and campus facilities using an interactive Three.js environment.">
 
     <!-- Preload the model since it's the largest asset on the critical path -->
@@ -21,18 +14,6 @@
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
 
-    <!--
-      PERFORMANCE FIX: CSS is now inlined directly here instead of being
-      loaded as a separate stylesheet file. An external <link
-      rel="stylesheet"> blocks the browser from painting anything until
-      that file is fetched — Lighthouse flagged this as a "render-blocking
-      request" costing ~310ms. Since this file is small (~1.7KB gzipped),
-      inlining it removes that network round-trip entirely.
-
-      MAINTENANCE NOTE: going forward, edit the CSS directly in this
-      <style> block rather than in src/style.css — that file is no longer
-      imported anywhere, so changes there won't show up on the live site.
-    -->
     <style>
 /* ==========================================================================
    1. GLOBAL RESETS
